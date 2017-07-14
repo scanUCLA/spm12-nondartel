@@ -1,23 +1,14 @@
-function [status, errorMsg] = run_nondartel_1struct(subNam, owd, codeDir, output, runID, mpragedirID)
+function [status, errorMsg] = run_nondartel_1struct(subNam, owd, codeDir, output,...
+    runID, funcID, mpragedirID, execTAG, voxSize, FWHM, tpmPath)
 
 %% Parameters
 funcFormat=2;       % format of your raw functional images (1=img/hdr, 2=4D nii)
-funcName='BOLD';       % first character(s) in your functional images? (do not use wildcards)
-mbwID = 'Matched_Bandwidth_HiRes_*.nii';   % pattern for finding matched-bandwidth image (use wildcards)
-mprageID = 'MPRAGE_SAG_*.nii';    % pattern for finding mprage image (use wildcards)
 
-% customizable preprocessing parameters
-vox_size = 2;    % voxel size at which to re-sample functionals (isotropic)
-smooth_FWHM = 8; % smoothing kernel (isotropic)
-
-execTAG = 1;
 %% Setup for Matlabbatch
-spm12_path;
-spm('defaults','fmri'); spm_jobman('initcfg');
-
 status = NaN;
 errorMsg = '';
 try
+    spm('defaults','fmri'); spm_jobman('initcfg');
     
     cd(owd)
     swd = sprintf('%s/%s',owd,subNam);
@@ -41,16 +32,16 @@ try
     for i = 1:numruns
         load_dir{i} = fullfile(base_dir,run_names{i});
         if funcFormat==1
-            tmpString=sprintf('^%s.*\\.img$',funcName);
+            tmpString=sprintf('^%s.*\\.img$',funcID);
             [raw_func_filenames{i},dirs] = spm_select('List',load_dir{i},tmpString, inf);
             filenames_orig{i}=cellstr(strcat(load_dir{i},filesep,raw_func_filenames{i}));
-            filenames_norm{i}=cellstr(strcat(load_dir{i},filesep,'w',raw_func_filenames{i}));
+            %filenames_norm{i}=cellstr(strcat(load_dir{i},filesep,'w',raw_func_filenames{i}));
             allfiles_orig = [allfiles_orig; filenames_orig{i}];
         else
-            tmpString=sprintf('^%s.*\\.nii$',funcName);
+            tmpString=sprintf('^%s.*\\.nii$',funcID);
             [raw_func_filenames{i},dirs] = spm_select('ExtFPList',load_dir{i},tmpString, inf);
             filenames_orig{i}=cellstr(strcat(raw_func_filenames{i}));
-            filenames_norm{i}=cellstr(strcat('w',raw_func_filenames{i}));
+            %filenames_norm{i}=cellstr(strcat('w',raw_func_filenames{i}));
             allfiles_orig = [allfiles_orig; filenames_orig{i}];
         end
     end
@@ -65,82 +56,108 @@ try
     % Find the anatomicals
     % -------------------------------------------------
     
-    %     % find the mbw folder
-    %     d=dir(mbwdirID);
-    %     mbwdir = [base_dir filesep d(1).name];
-    %     cd(mbwdir); d = dir(mbwID);
-    %     mbw_name = d.name; clear d
-    %     mbw = [mbwdir filesep mbw_name];
-    %     fprintf('MBW is: %s\n',mbw)
-    
     % find the mprage folder
     d=dir(mpragedirID);
     mprdir = [base_dir filesep d(1).name];
-    cd(mprdir); d = dir(mprageID);
+    
+    % get the images
+    cd(mprdir); d = dir([mpragedirID '.nii']);
     mprage_name = d.name; clear d
     t1vol = [mprdir filesep mprage_name];
     fprintf('MPRAGE is: %s\n\n',t1vol)
-    
-    %     % for DARTEL
-    %     allfuncs = allfiles_orig;
-    %     allt1 = [t1vol];
-    %     allrc1 = [mprdir filesep 'rc1' mprage_name(1:end-4) '.nii'];
-    %     allrc2 = [mprdir filesep 'rc2' mprage_name(1:end-4) '.nii'];
-    %     allu_rc1 = [mprdir filesep 'u_rc1' mprage_name(1:end-4) '_Template.nii'];
     
     %% Build Matlabbatch
     
     matlabbatch{1}.cfg_basicio.cfg_cd.dir = cellstr(strcat(swd,filesep,'notes'));
     
-    % Realign Functionals
+    % Realign & Unwarp Functionals
     for i = 1:numruns
-        matlabbatch{2}.spm.spatial.realign.estwrite.data{i} = filenames_orig{i};
+        matlabbatch{2}.spm.spatial.realignunwarp.data(i).scans = filenames_orig{i};
+        matlabbatch{2}.spm.spatial.realignunwarp.data(i).pmscan = '';
     end
-    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.quality = 0.9;         % higher quality
-    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.sep = 4;               % default is 4
-    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.fwhm = 5;              % default
-    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.rtm = 1;               % changed from 0 (=realign to first) to 1 (realign to mean) for
-    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.interp = 4;            % default
-    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.wrap = [0 0 0];        % default
-    matlabbatch{2}.spm.spatial.realign.estwrite.eoptions.weight = '';           % don't weight
-    matlabbatch{2}.spm.spatial.realign.estwrite.roptions.which  = [0 1];        % create mean image only when reslicing
-    matlabbatch{2}.spm.spatial.realign.estwrite.roptions.interp = 4;            % default
-    matlabbatch{2}.spm.spatial.realign.estwrite.roptions.wrap   = [0 0 0];      % no wrap (default)
-    matlabbatch{2}.spm.spatial.realign.estwrite.roptions.mask   = 1;            % enable masking (default)
-    matlabbatch{2}.spm.spatial.realign.estwrite.roptions.prefix = 'r';
+    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.quality = 0.9;
+    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.sep = 4;
+    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.fwhm = 5;
+    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.rtm = 1; % default is 0, changed to 1 (potentially more accurate)
+    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.einterp = 4; % default is 2, changed to 4 (more accurate)
+    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.ewrap = [0 0 0];
+    matlabbatch{2}.spm.spatial.realignunwarp.eoptions.weight = '';
+    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.basfcn = [12 12];
+    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.regorder = 1;
+    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.lambda = 100000;
+    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.jm = 0;
+    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.fot = [4 5];
+    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.sot = [];
+    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.uwfwhm = 4;
+    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.rem = 1;
+    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.noi = 5;
+    matlabbatch{2}.spm.spatial.realignunwarp.uweoptions.expround = 'Average';
+    matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.uwwhich = [2 1];
+    matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.rinterp = 4;
+    matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.wrap = [0 0 0];
+    matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.mask = 1;
+    matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.prefix = 'u';
     
-    % Normalize/segment MPRAGE
-    matlabbatch{3}.spm.spatial.normalise.est.subj.vol = cellstr(t1vol);
-    matlabbatch{3}.spm.spatial.normalise.est.eoptions.biasreg = 0.0001;
-    matlabbatch{3}.spm.spatial.normalise.est.eoptions.biasfwhm = 60;
-    matlabbatch{3}.spm.spatial.normalise.est.eoptions.tpm = {'/u/project/CCN/apps/spm12/tpm/TPM.nii'};
-    matlabbatch{3}.spm.spatial.normalise.est.eoptions.affreg = 'mni';
-    matlabbatch{3}.spm.spatial.normalise.est.eoptions.reg = [0 0.001 0.5 0.05 0.2];
-    matlabbatch{3}.spm.spatial.normalise.est.eoptions.fwhm = 0;
-    matlabbatch{3}.spm.spatial.normalise.est.eoptions.samp = 3;
+    % Segment, bias-correct, and spatially-normalize MPRAGE
+    matlabbatch{3}.spm.spatial.preproc.channel.vols = cellstr(t1vol);
+    matlabbatch{3}.spm.spatial.preproc.channel.biasreg = 0.001;
+    matlabbatch{3}.spm.spatial.preproc.channel.biasfwhm = 60;
+    matlabbatch{3}.spm.spatial.preproc.channel.write = [0 1];
+    matlabbatch{3}.spm.spatial.preproc.tissue(1).tpm = cellstr([tpmPath '/TPM.nii,1']);
+    matlabbatch{3}.spm.spatial.preproc.tissue(1).ngaus = 2;
+    matlabbatch{3}.spm.spatial.preproc.tissue(1).native = [0 0];
+    matlabbatch{3}.spm.spatial.preproc.tissue(1).warped = [0 0];
+    matlabbatch{3}.spm.spatial.preproc.tissue(2).tpm = cellstr([tpmPath '/TPM.nii,2']);
+    matlabbatch{3}.spm.spatial.preproc.tissue(2).ngaus = 2;
+    matlabbatch{3}.spm.spatial.preproc.tissue(2).native = [0 0];
+    matlabbatch{3}.spm.spatial.preproc.tissue(2).warped = [0 0];
+    matlabbatch{3}.spm.spatial.preproc.tissue(3).tpm = cellstr([tpmPath '/TPM.nii,3']);
+    matlabbatch{3}.spm.spatial.preproc.tissue(3).ngaus = 2;
+    matlabbatch{3}.spm.spatial.preproc.tissue(3).native = [0 0];
+    matlabbatch{3}.spm.spatial.preproc.tissue(3).warped = [0 0];
+    matlabbatch{3}.spm.spatial.preproc.tissue(4).tpm = cellstr([tpmPath '/TPM.nii,4']);
+    matlabbatch{3}.spm.spatial.preproc.tissue(4).ngaus = 3;
+    matlabbatch{3}.spm.spatial.preproc.tissue(4).native = [0 0];
+    matlabbatch{3}.spm.spatial.preproc.tissue(4).warped = [0 0];
+    matlabbatch{3}.spm.spatial.preproc.tissue(5).tpm = cellstr([tpmPath '/TPM.nii,5']);
+    matlabbatch{3}.spm.spatial.preproc.tissue(5).ngaus = 4;
+    matlabbatch{3}.spm.spatial.preproc.tissue(5).native = [0 0];
+    matlabbatch{3}.spm.spatial.preproc.tissue(5).warped = [0 0];
+    matlabbatch{3}.spm.spatial.preproc.tissue(6).tpm = cellstr([tpmPath '/TPM.nii,6']);
+    matlabbatch{3}.spm.spatial.preproc.tissue(6).ngaus = 2;
+    matlabbatch{3}.spm.spatial.preproc.tissue(6).native = [0 0];
+    matlabbatch{3}.spm.spatial.preproc.tissue(6).warped = [0 0];
+    matlabbatch{3}.spm.spatial.preproc.warp.mrf = 1;
+    matlabbatch{3}.spm.spatial.preproc.warp.cleanup = 1;
+    matlabbatch{3}.spm.spatial.preproc.warp.reg = [0 0.001 0.5 0.05 0.2];
+    matlabbatch{3}.spm.spatial.preproc.warp.affreg = 'mni';
+    matlabbatch{3}.spm.spatial.preproc.warp.fwhm = 0;
+    matlabbatch{3}.spm.spatial.preproc.warp.samp = 3;
+    matlabbatch{3}.spm.spatial.preproc.warp.write = [0 1];
     
     % Coregister mean functional to MPRAGE
-    matlabbatch{4}.spm.spatial.coreg.estimate.ref = cellstr(t1vol);
-    matlabbatch{4}.spm.spatial.coreg.estimate.source(1) = cfg_dep('Realign: Estimate & Reslice: Mean Image', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','rmean'));
+    matlabbatch{4}.spm.spatial.coreg.estimate.ref(1) = cfg_dep('Segment: Bias Corrected (1)', substruct('.','val', '{}',{3}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','channel', '()',{1}, '.','biascorr', '()',{':'}));
+    matlabbatch{4}.spm.spatial.coreg.estimate.source(1) = cfg_dep('Realign & Unwarp: Unwarped Mean Image', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','meanuwr'));
     for i = 1:numruns
-        matlabbatch{4}.spm.spatial.coreg.estimate.other(i) = cfg_dep(['Realign: Estimate & Reslice: Realigned Images (Sess ' num2str(i) ')'], substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','sess', '()',{i}, '.','cfiles'));
+        matlabbatch{4}.spm.spatial.coreg.estimate.other(i) = cfg_dep(['Realign & Unwarp: Unwarped Images (Sess ' num2str(i) ')'], substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','sess', '()',{i}, '.','uwrfiles'));
     end
     matlabbatch{4}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
     matlabbatch{4}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
     matlabbatch{4}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
-    matlabbatch{4}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7];
+    matlabbatch{4}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7]; 
     
     % Apply normalization parameters from MPRAGE to functionals
-    matlabbatch{5}.spm.spatial.normalise.write.subj.def(1) = cfg_dep('Normalise: Estimate: Deformation (Subj 1)', substruct('.','val', '{}',{3}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('()',{1}, '.','def'));
+    matlabbatch{5}.spm.spatial.normalise.write.subj.def(1) = cfg_dep('Segment: Forward Deformations', substruct('.','val', '{}',{3}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','fordef', '()',{':'}));
     matlabbatch{5}.spm.spatial.normalise.write.subj.resample(1) = cfg_dep('Coregister: Estimate: Coregistered Images', substruct('.','val', '{}',{4}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','cfiles'));
     matlabbatch{5}.spm.spatial.normalise.write.woptions.bb = [-78 -112 -70
         78 76 85];
-    matlabbatch{5}.spm.spatial.normalise.write.woptions.vox = [vox_size vox_size vox_size];
+    matlabbatch{5}.spm.spatial.normalise.write.woptions.vox = [voxSize voxSize voxSize];
     matlabbatch{5}.spm.spatial.normalise.write.woptions.interp = 4;
+    matlabbatch{5}.spm.spatial.normalise.write.woptions.prefix = 'w';
     
     % Smooth
     matlabbatch{6}.spm.spatial.smooth.data(1) = cfg_dep('Normalise: Write: Normalised Images (Subj 1)', substruct('.','val', '{}',{5}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('()',{1}, '.','files'));
-    matlabbatch{6}.spm.spatial.smooth.fwhm = [smooth_FWHM smooth_FWHM smooth_FWHM];
+    matlabbatch{6}.spm.spatial.smooth.fwhm = [FWHM FWHM FWHM];
     matlabbatch{6}.spm.spatial.smooth.dtype = 0;
     matlabbatch{6}.spm.spatial.smooth.im = 0;
     matlabbatch{6}.spm.spatial.smooth.prefix = 's';
@@ -148,6 +165,7 @@ try
 catch
     status = 0;
     errorMsg = 'Error making matlabbatch';
+    disp([errorMsg ' for ' subNam]);
     cd(codeDir);
     return
 end
@@ -155,11 +173,12 @@ end
 %% Save matlabbatch
 try
     time_stamp = datestr(now, 'yyyymmdd_HHMM');
-    filename = [output '/nondartelSeg_' subNam '_' time_stamp];
+    filename = [output '/nondartel_1struct' subNam '_' time_stamp];
     save(filename, 'matlabbatch');
 catch
     status = 0;
     errorMsg = 'Error saving matlabbatch';
+    disp([errorMsg ' for ' subNam]);
     cd(codeDir);
     return
 end
@@ -173,6 +192,7 @@ try
 catch
     status = 0;
     errorMsg = 'Error running matlabbatch';
+    disp([errorMsg ' for ' subNam]);
     cd(codeDir);
     return
 end
