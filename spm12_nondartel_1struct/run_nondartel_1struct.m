@@ -173,7 +173,7 @@ end
 %% Save matlabbatch
 try
     time_stamp = datestr(now, 'yyyymmdd_HHMM');
-    filename = [output '/nondartel_1struct' subNam '_' time_stamp];
+    filename = [output '/nondartel_1struct_' subNam '_' time_stamp];
     save(filename, 'matlabbatch');
 catch
     status = 0;
