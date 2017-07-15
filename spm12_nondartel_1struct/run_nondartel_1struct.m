@@ -98,7 +98,7 @@ try
     matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.mask = 1;
     matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.prefix = 'u';
     
-    % Segment, bias-correct, and spatially-normalize MPRAGE
+    % Segment, bias-correct, and spatially-normalize structural
     matlabbatch{3}.spm.spatial.preproc.channel.vols = cellstr(t1vol);
     matlabbatch{3}.spm.spatial.preproc.channel.biasreg = 0.001;
     matlabbatch{3}.spm.spatial.preproc.channel.biasfwhm = 60;
@@ -135,7 +135,7 @@ try
     matlabbatch{3}.spm.spatial.preproc.warp.samp = 3;
     matlabbatch{3}.spm.spatial.preproc.warp.write = [0 1];
     
-    % Coregister mean functional to MPRAGE
+    % Coregister mean functional to structural
     matlabbatch{4}.spm.spatial.coreg.estimate.ref(1) = cfg_dep('Segment: Bias Corrected (1)', substruct('.','val', '{}',{3}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','channel', '()',{1}, '.','biascorr', '()',{':'}));
     matlabbatch{4}.spm.spatial.coreg.estimate.source(1) = cfg_dep('Realign & Unwarp: Unwarped Mean Image', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','meanuwr'));
     for i = 1:numruns
@@ -146,7 +146,7 @@ try
     matlabbatch{4}.spm.spatial.coreg.estimate.eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
     matlabbatch{4}.spm.spatial.coreg.estimate.eoptions.fwhm = [7 7]; 
     
-    % Apply normalization parameters from MPRAGE to functionals
+    % Apply normalization parameters from structural to functionals
     matlabbatch{5}.spm.spatial.normalise.write.subj.def(1) = cfg_dep('Segment: Forward Deformations', substruct('.','val', '{}',{3}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','fordef', '()',{':'}));
     matlabbatch{5}.spm.spatial.normalise.write.subj.resample(1) = cfg_dep('Coregister: Estimate: Coregistered Images', substruct('.','val', '{}',{4}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','cfiles'));
     matlabbatch{5}.spm.spatial.normalise.write.woptions.bb = [-78 -112 -70

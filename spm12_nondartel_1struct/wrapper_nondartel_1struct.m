@@ -1,3 +1,18 @@
+%% SPM12 non-dartel using one structural file (just MPRAGE or just MBW)
+% Created by Kevin Tan on Jul 13, 2017 (some code adopted from Bob Spunt)
+
+% DESCRIPTION:
+% 1) Functionals realigned to mean functional orientation & unwarped
+% 2) Segment, bias-correct, and spatially-normalize structural to MNI
+% 3) Coregister mean functional to structural
+% 4) Apply normalization parameters from structural to functionals
+% 5) Smooth functionals
+
+% INSTRUCTIONS:
+% Edit parameters at the top of the wrapper then run the wrapper. The wrapper will
+% call "run_nondartel_1struct" so make sure that is in the same directory. This
+% will save a "runStatus" struct that will contain each subjects' status
+
 %% User-editable Parameters
 
 % Path/directory/name information
@@ -108,11 +123,9 @@ else
     end
 end
 
-
-
 % Save stuff
 date = datestr(now,'yyyymmdd_HHMM');
 filename = [output '/runStatus_' date '.mat'];
 save(filename,'runStatus');
-filename = [output '/workspace_' date '.mat']; % Use this to re-do "run dartel" if it fails
+filename = [output '/workspace_' date '.mat']; % You can use this to deep-dive into what went wrong
 save(filename);
