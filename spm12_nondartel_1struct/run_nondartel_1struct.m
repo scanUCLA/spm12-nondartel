@@ -1,4 +1,4 @@
-function [status, errorMsg] = run_nondartel_1struct(subNam, owd, codeDir, output,...
+function [status, errorMsg] = run_nondartel_1struct(subNam, owd, codeDir, batchDir,...
     runID, funcID, mpragedirID, execTAG, voxSize, FWHM, tpmPath)
 
 %% Parameters
@@ -173,7 +173,7 @@ end
 %% Save matlabbatch
 try
     time_stamp = datestr(now, 'yyyymmdd_HHMM');
-    filename = [output '/nondartel_1struct_' subNam '_' time_stamp];
+    filename = [batchDir '/nondartel_1struct_' subNam '_' time_stamp];
     save(filename, 'matlabbatch');
 catch
     status = 0;

@@ -1,24 +1,22 @@
 %% SPM12 non-dartel using one structural file (just MPRAGE or just MBW)
 % Created by Kevin Tan on Jul 13, 2017 (some code adopted from Bob Spunt)
 
-% DESCRIPTION:
-% 1) Functionals realigned to mean functional orientation & unwarped
+% ALGORITHM:
+% 1) Realign functionals to mean functional & unwarp
 % 2) Segment, bias-correct, and spatially-normalize structural to MNI
-% 3) Coregister mean functional to structural
-% 4) Apply normalization parameters from structural to functionals
-% 5) Smooth functionals
+% 3) Coregister functionals to bias-corrected structural grey matter
+% 4) Normalize functionals to MNI space using forward deformations from structural
+% 5) Smooth functionals using FWHM kernel
 
 % INSTRUCTIONS:
-% Edit parameters at the top of the wrapper then run the wrapper. The wrapper will
-% call "run_nondartel_1struct" so make sure that is in the same directory. This
-% will save a "runStatus" struct that will contain each subjects' status
+% https://github.com/scanUCLA/spm12-nondartel
 
 %% User-editable Parameters
 
 % Path/directory/name information
 owd = '/u/project/sanscn/kevmtan/scripts/SPM12_nondartel/spm12_nondartel_1struct/endo2';  % base study directory
 codeDir = '/u/project/sanscn/kevmtan/scripts/SPM12_nondartel/spm12_nondartel_1struct'; % where code lives
-output = '/u/project/sanscn/kevmtan/scripts/SPM12_nondartel/spm12_nondartel_1struct/endo2batch'; % dir in which to save scripts
+batchDir = '/u/project/sanscn/kevmtan/scripts/SPM12_nondartel/spm12_nondartel_1struct/endo2batch'; % dir in which to save batch scripts & subject status
 subID = 'endo*'; % pattern for finding subject folders (use wildcards)
 runID = 'BOLD_*'; % pattern for finding functional run folders (use wildcards)
 funcID ='BOLD_'; % first character(s) in your functional images? (do NOT use wildcards)
@@ -31,7 +29,7 @@ skipSub = {}; % skip which subjects? (leave empty to do all)
 % Parallelize across subjects? (enable for 4+ subjects)
 parallelize = 1; % (1=yes, 0=no)
 
-% 4d or 3d functional .nii?
+% 4d or 3d functional nifti files?
 fourDnii = 1; % 1=4d, 0=3d
 
 % Customizable preprocessing parameters
@@ -67,7 +65,7 @@ runStatus(numSubs).error = [];
 
 % Make batch output folder
 try
-    mkdir(output);
+    mkdir(batchDir);
 catch
 end
 
@@ -86,7 +84,7 @@ if parallelize
         else % Run subject
             disp(['Running subject ' subNam{i}]);
             [runStatus(i).status, runStatus(i).error]...
-                = run_nondartel_1struct(subNam{i}, owd, codeDir, output, runID,...
+                = run_nondartel_1struct(subNam{i}, owd, codeDir, batchDir, runID,...
                 funcID, structID, execTAG, voxSize, FWHM, tpmPath);
             if runStatus(i).status == 1
                 disp(['subject ' subNam{i} ' successful']);
@@ -111,7 +109,7 @@ else
         else % Run subject
             disp(['Running subject ' subNam{i}]);
             [runStatus(i).status, runStatus(i).error]...
-                = run_nondartel_1struct(subNam{i}, owd, codeDir, output, runID,...
+                = run_nondartel_1struct(subNam{i}, owd, codeDir, batchDir, runID,...
                 funcID, structID, execTAG, voxSize, FWHM, tpmPath);
             if runStatus(i).status == 1
                 disp(['subject ' subNam{i} ' successful']);
@@ -125,7 +123,7 @@ end
 
 % Save stuff
 date = datestr(now,'yyyymmdd_HHMM');
-filename = [output '/runStatus_' date '.mat'];
+filename = [batchDir '/runStatus_' date '.mat'];
 save(filename,'runStatus');
-filename = [output '/workspace_' date '.mat']; % You can use this to deep-dive into what went wrong
+filename = [batchDir '/workspace_' date '.mat']; % You can use this to deep-dive into what went wrong
 save(filename);
