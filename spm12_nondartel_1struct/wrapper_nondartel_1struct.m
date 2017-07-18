@@ -1,15 +1,8 @@
 %% SPM12 non-dartel using one structural file (just MPRAGE or just MBW)
 % Created by Kevin Tan on Jul 13, 2017 (some code adopted from Bob Spunt)
 
-% ALGORITHM:
-% 1) Realign functionals to mean functional & unwarp
-% 2) Segment, bias-correct, and spatially-normalize structural to MNI
-% 3) Coregister functionals to bias-corrected structural grey matter
-% 4) Normalize functionals to MNI space using forward deformations from structural
-% 5) Smooth functionals using FWHM kernel
-
-% INSTRUCTIONS:
-% https://github.com/scanUCLA/spm12-nondartel
+% Instructions, agorithmic description & edit history:
+%   https://github.com/scanUCLA/spm12-nondartel
 
 %% User-editable Parameters
 
@@ -33,8 +26,8 @@ parallelize = 1; % (1=yes, 0=no)
 fourDnii = 1; % 1=4d, 0=3d
 
 % Customizable preprocessing parameters
-voxSize = 3; % voxel size at which to re-sample functionals (isotropic)
-FWHM = 8; % smoothing kernel (isotropic)
+voxSize = 3; % voxel size at which to re-sample functionals (mm isotropic)
+FWHM = 8; % smoothing kernel (mm isotropic)
 
 % Path of TPM tissues in your SPM directory
 tpmPath = '/u/project/CCN/apps/spm12/tpm';
