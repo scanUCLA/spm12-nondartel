@@ -1,5 +1,6 @@
 function [status, errorMsg] = run_nondartel_1struct(subNam, owd, codeDir, batchDir,...
     runID, funcID, mpragedirID, execTAG, fVoxSize, sVoxSize, FWHM, tpmPath)
+% Last revision: 28 July 2017 - Kevin Tan
 
 %% Parameters
 funcFormat=2;       % format of your raw functional images (1=img/hdr, 2=4D nii)

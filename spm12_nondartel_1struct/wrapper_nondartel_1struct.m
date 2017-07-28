@@ -4,6 +4,7 @@
 % Instructions, agorithmic description & edit history:
 %   https://github.com/scanUCLA/spm12-nondartel
 
+% Last revision: 28 July 2017 - Kevin Tan
 %% User-editable Parameters
 
 % Path/directory/name information
