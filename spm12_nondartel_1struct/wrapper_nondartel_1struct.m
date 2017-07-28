@@ -39,7 +39,7 @@ tpmPath = '/u/project/CCN/apps/spm12/tpm';
 execTAG = 0;
 
 %% Setup subjects
-
+diary([batchDir '/nondartel_log_' datestr(now,'yyyymmdd_HHMM') '.txt']);
 % Find subject directories
 if isempty(subNam)
     d = dir([owd '/' subID]);
@@ -123,3 +123,4 @@ filename = [batchDir '/runStatus_' date '.mat'];
 save(filename,'runStatus');
 filename = [batchDir '/workspace_' date '.mat']; % You can use this to deep-dive into what went wrong
 save(filename);
+diary off
