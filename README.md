@@ -11,7 +11,8 @@ Within each folder there is a <b>wrapper</b> script and a <b>run</b> function. A
 
 <b>1struct algorithm:</b>
 1) Realign functionals to mean functional & unwarp 
-2) Segment, bias-correct, and spatially-normalize structural to MNI
+2) Segment, bias-correct, and get MNI normalization deformation fields for structural
 3) Coregister functionals to bias-corrected structural grey matter
 4) Normalize functionals to MNI space using forward deformations from structural
 5) Smooth functionals using FWHM kernel
+6) Normalize bias-corrected structural from segmentation deformations

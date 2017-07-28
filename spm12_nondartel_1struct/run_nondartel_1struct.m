@@ -98,7 +98,7 @@ try
     matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.mask = 1;
     matlabbatch{2}.spm.spatial.realignunwarp.uwroptions.prefix = 'u';
     
-    % Segment, bias-correct, and get normalization deformation fields for structural
+    % Segment, bias-correct, and get MNI normalization deformation fields for structural
     matlabbatch{3}.spm.spatial.preproc.channel.vols = cellstr(t1vol);
     matlabbatch{3}.spm.spatial.preproc.channel.biasreg = 0.001;
     matlabbatch{3}.spm.spatial.preproc.channel.biasfwhm = 60;
@@ -155,14 +155,14 @@ try
     matlabbatch{5}.spm.spatial.normalise.write.woptions.interp = 4;
     matlabbatch{5}.spm.spatial.normalise.write.woptions.prefix = 'w';
     
-    % Smooth
+    % Smooth functionals
     matlabbatch{6}.spm.spatial.smooth.data(1) = cfg_dep('Normalise: Write: Normalised Images (Subj 1)', substruct('.','val', '{}',{5}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('()',{1}, '.','files'));
     matlabbatch{6}.spm.spatial.smooth.fwhm = [FWHM FWHM FWHM];
     matlabbatch{6}.spm.spatial.smooth.dtype = 0;
     matlabbatch{6}.spm.spatial.smooth.im = 0;
     matlabbatch{6}.spm.spatial.smooth.prefix = 's';
     
-    % Normalize bias-corrected structural from segmentation
+    % Normalize bias-corrected structural from segmentation deformations
     matlabbatch{7}.spm.spatial.normalise.write.subj.def(1) = cfg_dep('Segment: Forward Deformations', substruct('.','val', '{}',{3}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','fordef', '()',{':'}));
     matlabbatch{7}.spm.spatial.normalise.write.subj.resample(1) = cfg_dep('Segment: Bias Corrected (1)', substruct('.','val', '{}',{3}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','channel', '()',{1}, '.','biascorr', '()',{':'}));
     matlabbatch{7}.spm.spatial.normalise.write.woptions.bb = [-78 -112 -70
