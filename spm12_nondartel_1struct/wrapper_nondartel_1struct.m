@@ -9,7 +9,7 @@
 % Path/directory/name information
 owd = '/u/project/sanscn/kevmtan/scripts/SPM12_nondartel/spm12_nondartel_1struct/endo2';  % base study directory
 codeDir = '/u/project/sanscn/kevmtan/scripts/SPM12_nondartel/spm12_nondartel_1struct'; % where code lives
-batchDir = '/u/project/sanscn/kevmtan/scripts/SPM12_nondartel/spm12_nondartel_1struct/endo2batch'; % dir in which to save batch scripts & subject status
+batchDir = '/u/project/sanscn/kevmtan/scripts/SPM12_nondartel/spm12_nondartel_1struct/endo2batch170727'; % dir in which to save batch scripts & subject status
 subID = 'endo*'; % pattern for finding subject folders (use wildcards)
 runID = 'BOLD_*'; % pattern for finding functional run folders (use wildcards)
 funcID ='BOLD_'; % first character(s) in your functional images? (do NOT use wildcards)
@@ -25,9 +25,12 @@ parallelize = 1; % (1=yes, 0=no)
 % 4d or 3d functional nifti files?
 fourDnii = 1; % 1=4d, 0=3d
 
-% Customizable preprocessing parameters
-voxSize = 3; % voxel size at which to re-sample functionals (mm isotropic)
-FWHM = 8; % smoothing kernel (mm isotropic)
+% Voxel size to resample to (use AFNI's dicom_hdr on the functional & structural DICOM files to figure out "slice thickness" and use that)
+fVoxSize = 3; % functionals (mm isotropic)
+sVoxSize = 1; % structurals (mm isotropic)
+
+% smoothing kernel for functionals  (mm isotropic)
+FWHM = 8;
 
 % Path of TPM tissues in your SPM directory
 tpmPath = '/u/project/CCN/apps/spm12/tpm';
@@ -78,7 +81,7 @@ if parallelize
             disp(['Running subject ' subNam{i}]);
             [runStatus(i).status, runStatus(i).error]...
                 = run_nondartel_1struct(subNam{i}, owd, codeDir, batchDir, runID,...
-                funcID, structID, execTAG, voxSize, FWHM, tpmPath);
+                funcID, structID, execTAG, fVoxSize, sVoxSize, FWHM, tpmPath);
             if runStatus(i).status == 1
                 disp(['subject ' subNam{i} ' successful']);
             else
@@ -103,7 +106,7 @@ else
             disp(['Running subject ' subNam{i}]);
             [runStatus(i).status, runStatus(i).error]...
                 = run_nondartel_1struct(subNam{i}, owd, codeDir, batchDir, runID,...
-                funcID, structID, execTAG, voxSize, FWHM, tpmPath);
+                funcID, structID, execTAG, fVoxSize, sVoxSize, FWHM, tpmPath);
             if runStatus(i).status == 1
                 disp(['subject ' subNam{i} ' successful']);
             else
