@@ -4,7 +4,7 @@
 % Instructions, agorithmic description & edit history:
 %   https://github.com/scanUCLA/spm12-nondartel
 
-% Last revision: 28 July 2017 - Kevin Tan
+% Last revision: 29 July 2017 - Kevin Tan
 %% User-editable Parameters
 
 % Path/directory/name information
@@ -67,7 +67,12 @@ catch
 end
 
 if parallelize
-    pool = parpool('local', numSubs);
+
+% Determine number of parallel workers
+myCluster = parcluster('local');
+nWorkers = min(numSubs, myCluster.NumWorkers);
+
+pool = parpool('local', nWorkers);
     parfor i = 1:numSubs
         % Pre-allocate subject in runStatus struct
         runStatus(i).subNam = subNam{i};
