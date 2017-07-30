@@ -67,12 +67,11 @@ catch
 end
 
 if parallelize
+    % Determine number of parallel workers
+    myCluster = parcluster('local');
+    nWorkers = min(numSubs, myCluster.NumWorkers);
+    pool = parpool('local', nWorkers);
 
-% Determine number of parallel workers
-myCluster = parcluster('local');
-nWorkers = min(numSubs, myCluster.NumWorkers);
-
-pool = parpool('local', nWorkers);
     parfor i = 1:numSubs
         % Pre-allocate subject in runStatus struct
         runStatus(i).subNam = subNam{i};
